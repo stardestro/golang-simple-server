@@ -12,6 +12,8 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
+	"github.com/twilio/twilio-go"
+	api "github.com/twilio/twilio-go/rest/api/v2010"
 
 )
 
@@ -110,6 +112,29 @@ func decryptFile(filename string, passphrase string) {
 	f.Write(decrypt(data, passphrase))
 }
 
+func sendSMS() {
+	// Find your Account SID and Auth Token at twilio.com/console
+	// and set the environment variables. See http://twil.io/secure
+	client := twilio.NewRestClient()
+
+	params := &api.CreateMessageParams{}
+	params.SetBody("Your photo was downloaded!")
+	params.SetFrom("+18444316263")
+	params.SetMediaUrl([]string{"https://c1.staticflickr.com/3/2899/14341091933_1e92e62d12_b.jpg"})
+	params.SetTo("+18303746050")
+
+	resp, err := client.Api.CreateMessage(params)
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		if resp.Sid != nil {
+			fmt.Println(*resp.Sid)
+		} else {
+			fmt.Println(resp.Sid)
+		}
+	}
+}
+
 func downloadFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("r.method:", r.Method)
 	// if method is GET then load form, if not then upload successfull message
@@ -123,6 +148,7 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("myPassword: %s\n", myPassword)
 	
 	decryptFile(myFile , myPassword)
+	sendSMS()
 	w.Header().Set("Content-Disposition", "attachment; filename=" + myFile)
 	http.ServeFile(w, r, "./public/decrypted" + myFile)
 	err := os.Remove("./public/decrypted" + myFile)
