@@ -42,7 +42,7 @@ func main() {
 	http.HandleFunc("/upload", uploadFile)
 	http.HandleFunc("/directory", directory)
 	
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":80", nil)
 	//http.HandleFunc("/cat", catfunction)
 }
 

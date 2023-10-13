@@ -1,11 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>File Download</title>
+    <title>Download</title>
   </head>
   <body>
-    <h1>File Download	 Page</h1>
-     
+    <h1>MOMO Cloud</h1>
+        <form
+          enctype="multipart/form-data"
+          action="/upload"
+          method="post"
+        >
+          <input type="file" name="myFile" />
+          <input type="password" name="myPassword" />
+          <input type="submit" value="upload" />
+        </form>
         {{range $val := .}}
         <form
           enctype="multipart/form-data"
@@ -13,7 +21,10 @@
           method="post"
         >
           <div class="file">
-            <p id="myFile" name="myFile" value="{{$val}}">{{$val}}</p>
+
+
+            <input type="hidden" name="myFile" value="{{$val}}" />
+            <p>{{$val}}</p>
             <input  type="password" name="myPassword" />
             <input type="submit" value="download" />
           </div>
