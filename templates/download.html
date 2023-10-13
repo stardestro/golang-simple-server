@@ -5,14 +5,29 @@
   </head>
   <body>
     <h1>File Download	 Page</h1>
-    <form
-      enctype="multipart/form-data"
-      action="/download"
-      method="post"
-    >
-      <input type="text" name="myFile" />
-      <input type="password" name="myPassword" />
-      <input type="submit" value="download" />
-    </form>
+     
+        {{range $val := .}}
+        <form
+          enctype="multipart/form-data"
+          action="/download"
+          method="post"
+        >
+          <div class="file">
+            <p id="myFile" name="myFile" value="{{$val}}">{{$val}}</p>
+            <input  type="password" name="myPassword" />
+            <input type="submit" value="download" />
+          </div>
+        </form>
+        {{end}}
+      <!-- <select name="myFile">
+        {{range $val := .}}
+              <option value="{{$val}}">{{$val}}</option>
+        {{end}}
+      </select>
+      <input type="text" name="myFile" /> -->
+      <!-- <input type="password" name="myPassword" />
+      <input type="submit" value="download" /> -->
+    
+    
   </body>
 </html>

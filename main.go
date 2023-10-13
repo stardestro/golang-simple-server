@@ -114,7 +114,17 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("r.method:", r.Method)
 	// if method is GET then load form, if not then upload successfull message
 	if r.Method == "GET" {
-		tpl.ExecuteTemplate(w, "download.html", nil)
+		files, _ := os.ReadDir("./public/")
+		// if err {
+		// 	fmt.Printf(err)
+		// }
+		var filenames []string
+		for _, file := range files {
+			filenames = append(filenames, file.Name())
+		}
+		// filenames := files.Name()
+		// fmt.Printf(filename)
+		tpl.ExecuteTemplate(w, "download.html", filenames)
 		return
 	}
 	myFile := r.FormValue("myFile")
