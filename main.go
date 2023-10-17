@@ -1,18 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"html/template"
-	"net/http"
-	"io/ioutil"
-	"os"
-	"io"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
-
+	"fmt"
+	"html/template"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
 )
 
 var tpl *template.Template
@@ -24,7 +23,7 @@ func main() {
 	fmt.Printf("myDir type: %T", myDir)
 	//encryptFile("sample.txt", []byte("Hello World"), "password1")
 	//decryptFile("sample.txt", "password1")
-	
+
 	// func FileServer(root FileSystem) Handler
 	//myHandler := http.FileServer(myDir)
 	http.HandleFunc("/", index)
@@ -41,8 +40,9 @@ func main() {
 	http.HandleFunc("/download", downloadFile)
 	http.HandleFunc("/upload", uploadFile)
 	http.HandleFunc("/directory", directory)
-	
-	http.ListenAndServe(":80", nil)
+
+	err := http.ListenAndServe(":80", nil)
+	fmt.Println("%v", err)
 	//http.HandleFunc("/cat", catfunction)
 }
 
@@ -103,8 +103,8 @@ func encryptFile(filename string, data []byte, passphrase string) {
 func decryptFile(filename string, passphrase string) {
 	data, _ := ioutil.ReadFile("./public/" + filename)
 	/*
-	
-	*/
+
+	 */
 	f, _ := os.Create("./public/decrypted" + filename)
 	defer f.Close()
 	f.Write(decrypt(data, passphrase))
@@ -131,10 +131,10 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	myPassword := r.FormValue("myPassword")
 	fmt.Printf("myFile: %s\n", myFile)
 	fmt.Printf("myPassword: %s\n", myPassword)
-	
-	decryptFile(myFile , myPassword)
-	w.Header().Set("Content-Disposition", "attachment; filename=" + myFile)
-	http.ServeFile(w, r, "./public/decrypted" + myFile)
+
+	decryptFile(myFile, myPassword)
+	w.Header().Set("Content-Disposition", "attachment; filename="+myFile)
+	http.ServeFile(w, r, "./public/decrypted"+myFile)
 	err := os.Remove("./public/decrypted" + myFile)
 	if err != nil {
 		fmt.Println(err)
@@ -145,11 +145,11 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 func directory(w http.ResponseWriter, r *http.Request) {
 	files, err := ioutil.ReadDir("./public/")
 	if err != nil {
-        	fmt.Println(err)
-    	}
+		fmt.Println(err)
+	}
 	for _, file := range files {
-        	fmt.Fprintf(w, file.Name() + "\n")
-    	}
+		fmt.Fprintf(w, file.Name()+"\n")
+	}
 }
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +164,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	// func (r *Request) FormFile(key string) (multipart.File, *multipart.FileHeader, error)
 	file, fileHeader, err := r.FormFile("myFile")
 	myPassword := r.FormValue("myPassword")
-	
+
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -181,15 +181,15 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	var osFile *os.File
 	// func TempFile(dir, pattern string) (f *os.File, err error)
 	/*
-	if contentType == "image/jpeg" {
-		osFile, err = ioutil.TempFile("images", "*.jpg")
-	} else if contentType == "application/pdf" {
-		osFile, err = ioutil.TempFile("PDFs", "*.pdf")
-	} else if contentType == "text/javascript" {
-		osFile, err = ioutil.TempFile("js", "*.js")
-	}
+		if contentType == "image/jpeg" {
+			osFile, err = ioutil.TempFile("images", "*.jpg")
+		} else if contentType == "application/pdf" {
+			osFile, err = ioutil.TempFile("PDFs", "*.pdf")
+		} else if contentType == "text/javascript" {
+			osFile, err = ioutil.TempFile("js", "*.js")
+		}
 	*/
-	osFile, err = ioutil.TempFile("public", "*" + fileHeader.Filename)
+	osFile, err = ioutil.TempFile("public", "*"+fileHeader.Filename)
 	fmt.Println("error:", err)
 	defer osFile.Close()
 
@@ -202,10 +202,11 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	osFile.Write(encrypt(fileBytes, myPassword))
 	fmt.Fprintf(w, "Your File was Successfully Uploaded!\n")
-	
+
 	//w.Header().Set("Content-Disposition", "attachment; filename=book.pdf")
 	//http.ServeFile(w, r, "./public/book.pdf")
 }
+
 /*
 // Recursively get all file paths in directory, including sub-directories.
 func GetAllFilePathsInDirectory(dirpath string) ([]string, error) {
