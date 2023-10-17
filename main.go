@@ -1,29 +1,38 @@
 package main
 
 import (
+	"fmt"
+	"net"
+	"html/template"
+	"net/http"
+	"io/ioutil"
+	"os"
+	"io"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
-	"html/template"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"os"
+	"log"
 )
 
 var tpl *template.Template
 
 func main() {
-	tpl, _ = tpl.ParseGlob("./templates/*.html")
+	logfile, logerr := os.OpenFile("serve.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if logerr != nil {
+		log.Fatal(logerr)
+	}
+	defer logfile.Close()
+	log.SetOutput(logfile)
+	tpl, _ = tpl.ParseGlob("/home/templates/*.html")
 	// create our new var myDir at type http.Dir
 	myDir := http.Dir("./public/")
-	fmt.Printf("myDir type: %T", myDir)
+	
+	log.Printf("myDir type: %T", myDir)
 	//encryptFile("sample.txt", []byte("Hello World"), "password1")
 	//decryptFile("sample.txt", "password1")
-
+	
 	// func FileServer(root FileSystem) Handler
 	//myHandler := http.FileServer(myDir)
 	http.HandleFunc("/", index)
@@ -40,14 +49,21 @@ func main() {
 	http.HandleFunc("/download", downloadFile)
 	http.HandleFunc("/upload", uploadFile)
 	http.HandleFunc("/directory", directory)
-
 	err := http.ListenAndServe(":80", nil)
 	fmt.Println("%v", err)
 	//http.HandleFunc("/cat", catfunction)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("r.method:", r.Method)
+	log.Println("r.method:", r.Method)
+	IPAddress := r.Header.Get("X-Real-Ip")
+        if IPAddress == "" {
+                IPAddress = r.Header.Get("X-Forwarded-For")
+        }
+        if IPAddress == "" {
+                IPAddress = r.RemoteAddr
+        }
+        log.Println(net.ParseIP(IPAddress))
 	// if method is GET then load form, if not then upload successfull message
 	if r.Method == "GET" {
 		tpl.ExecuteTemplate(w, "index.html", nil)
@@ -101,20 +117,20 @@ func encryptFile(filename string, data []byte, passphrase string) {
 }
 
 func decryptFile(filename string, passphrase string) {
-	data, _ := ioutil.ReadFile("./public/" + filename)
+	data, _ := ioutil.ReadFile("/home/public/" + filename)
 	/*
-
-	 */
-	f, _ := os.Create("./public/decrypted" + filename)
+	
+	*/
+	f, _ := os.Create("/home/public/decrypted" + filename)
 	defer f.Close()
 	f.Write(decrypt(data, passphrase))
 }
 
 func downloadFile(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("r.method:", r.Method)
+	log.Println("r.method:", r.Method)
 	// if method is GET then load form, if not then upload successfull message
 	if r.Method == "GET" {
-		files, _ := os.ReadDir("./public/")
+		files, _ := os.ReadDir("/home/public/")
 		// if err {
 		// 	fmt.Printf(err)
 		// }
@@ -125,35 +141,50 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 		// filenames := files.Name()
 		// fmt.Printf(filename)
 		tpl.ExecuteTemplate(w, "download.html", filenames)
+		IPAddress := r.Header.Get("X-Real-Ip")
+        	if IPAddress == "" {
+                	IPAddress = r.Header.Get("X-Forwarded-For")
+        	}
+        	if IPAddress == "" {
+                	IPAddress = r.RemoteAddr
+        	}
+        	log.Println(net.ParseIP(IPAddress))
 		return
 	}
 	myFile := r.FormValue("myFile")
 	myPassword := r.FormValue("myPassword")
-	fmt.Printf("myFile: %s\n", myFile)
-	fmt.Printf("myPassword: %s\n", myPassword)
-
-	decryptFile(myFile, myPassword)
-	w.Header().Set("Content-Disposition", "attachment; filename="+myFile)
-	http.ServeFile(w, r, "./public/decrypted"+myFile)
-	err := os.Remove("./public/decrypted" + myFile)
+	log.Printf("myFile: %s\n", myFile)
+	log.Printf("myPassword: %s\n", myPassword)
+	IPAddress := r.Header.Get("X-Real-Ip")
+    	if IPAddress == "" {
+        	IPAddress = r.Header.Get("X-Forwarded-For")
+    	}
+    	if IPAddress == "" {
+        	IPAddress = r.RemoteAddr
+    	}
+	log.Println(net.ParseIP(IPAddress))
+	decryptFile(myFile , myPassword)
+	w.Header().Set("Content-Disposition", "attachment; filename=" + myFile)
+	http.ServeFile(w, r, "/home/public/decrypted" + myFile)
+	err := os.Remove("/home/public/decrypted" + myFile)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 }
 
 func directory(w http.ResponseWriter, r *http.Request) {
-	files, err := ioutil.ReadDir("./public/")
+	files, err := ioutil.ReadDir("home/public/")
 	if err != nil {
-		fmt.Println(err)
-	}
+        	log.Println(err)
+    	}
 	for _, file := range files {
-		fmt.Fprintf(w, file.Name()+"\n")
-	}
+        	fmt.Fprintf(w, file.Name() + "\n")
+    	}
 }
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("r.method:", r.Method)
+	log.Println("r.method:", r.Method)
 	// if method is GET then load form, if not then upload successfull message
 	if r.Method == "GET" {
 		tpl.ExecuteTemplate(w, "upload.html", nil)
@@ -164,33 +195,33 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	// func (r *Request) FormFile(key string) (multipart.File, *multipart.FileHeader, error)
 	file, fileHeader, err := r.FormFile("myFile")
 	myPassword := r.FormValue("myPassword")
-
+	
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	defer file.Close()
-	fmt.Printf("fileHeader.Filename: %v\n", fileHeader.Filename)
-	fmt.Printf("fileHeader.Size: %v\n", fileHeader.Size)
-	fmt.Printf("fileHeader.Header: %v\n", fileHeader.Header)
-	fmt.Printf("myPassword: %s\n", myPassword)
+	log.Printf("fileHeader.Filename: %v\n", fileHeader.Filename)
+	log.Printf("fileHeader.Size: %v\n", fileHeader.Size)
+	log.Printf("fileHeader.Header: %v\n", fileHeader.Header)
+	log.Printf("myPassword: %s\n", myPassword)
 
 	// tempFile, err := ioutil.TempFile("images", "upload-*.png")
 	contentType := fileHeader.Header["Content-Type"][0]
-	fmt.Println("Content Type:", contentType)
+	log.Println("Content Type:", contentType)
 	var osFile *os.File
 	// func TempFile(dir, pattern string) (f *os.File, err error)
 	/*
-		if contentType == "image/jpeg" {
-			osFile, err = ioutil.TempFile("images", "*.jpg")
-		} else if contentType == "application/pdf" {
-			osFile, err = ioutil.TempFile("PDFs", "*.pdf")
-		} else if contentType == "text/javascript" {
-			osFile, err = ioutil.TempFile("js", "*.js")
-		}
+	if contentType == "image/jpeg" {
+		osFile, err = ioutil.TempFile("images", "*.jpg")
+	} else if contentType == "application/pdf" {
+		osFile, err = ioutil.TempFile("PDFs", "*.pdf")
+	} else if contentType == "text/javascript" {
+		osFile, err = ioutil.TempFile("js", "*.js")
+	}
 	*/
-	osFile, err = ioutil.TempFile("public", "*"+fileHeader.Filename)
-	fmt.Println("error:", err)
+	osFile, err = ioutil.TempFile("public", "*" + fileHeader.Filename)
+	log.Println("error:", err)
 	defer osFile.Close()
 
 	// func ReadAll(r io.Reader) ([]byte, error)
@@ -202,11 +233,17 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	osFile.Write(encrypt(fileBytes, myPassword))
 	fmt.Fprintf(w, "Your File was Successfully Uploaded!\n")
-
+	IPAddress := r.Header.Get("X-Real-Ip")
+        if IPAddress == "" {
+                IPAddress = r.Header.Get("X-Forwarded-For")
+        }
+        if IPAddress == "" {
+                IPAddress = r.RemoteAddr
+        }
+        log.Println(net.ParseIP(IPAddress))
 	//w.Header().Set("Content-Disposition", "attachment; filename=book.pdf")
 	//http.ServeFile(w, r, "./public/book.pdf")
 }
-
 /*
 // Recursively get all file paths in directory, including sub-directories.
 func GetAllFilePathsInDirectory(dirpath string) ([]string, error) {
